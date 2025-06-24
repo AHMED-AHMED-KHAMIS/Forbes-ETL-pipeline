@@ -1,10 +1,24 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
-
+import pandas as pd
 from extract import extract
 from transform import transform
 from load import load
+
+
+def extract_task():
+    df = extract()
+    df.to_csv("/opt/airflow/data/extracted.csv", index=False)
+
+def transform_task():
+    df = pd.read_csv("/opt/airflow/data/extracted.csv")
+    df = transform(df)
+    df.to_csv("/opt/airflow/data/transformed.csv", index=False)
+
+def load_task():
+    df = pd.read_csv("/opt/airflow/data/transformed.csv")
+    load(df)
 
 default_args = {
     'owner': 'khamis',
@@ -13,21 +27,28 @@ default_args = {
     'retry_delay': timedelta(minutes=2),
 }
 
-def extract_transform_load():
-    df = extract()
-    df = transform(df)
-    load(df)
-
 with DAG(
     dag_id='etl_csv_pipeline',
     default_args=default_args,
-    description='Simple ETL pipeline for CSV using pandas',
+    description='Three-step ETL pipeline using separate extract, transform, and load tasks',
     schedule_interval=None,
     catchup=False,
     tags=['etl', 'csv'],
 ) as dag:
 
-    run_etl = PythonOperator(
-        task_id='extract_transform_load',
-        python_callable=extract_transform_load,
+    extract_op = PythonOperator(
+        task_id='extract',
+        python_callable=extract_task,
     )
+
+    transform_op = PythonOperator(
+        task_id='transform',
+        python_callable=transform_task,
+    )
+
+    load_op = PythonOperator(
+        task_id='load',
+        python_callable=load_task,
+    )
+
+    extract_op >> transform_op >> load_op
