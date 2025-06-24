@@ -27,6 +27,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pytest
+        
+    - name: Set PYTHONPATH
+      run: echo "PYTHONPATH=$(pwd)/dags" >> $GITHUB_ENV
 
     - name: Run unit tests
       run: pytest tests/
@@ -49,7 +52,7 @@ jobs:
       run: docker exec khamis-webserver airflow dags trigger etl_csv_pipeline
 
     - name: Wait for DAG to finish (optional: polling or sleep)
-      run: sleep 60  # or add polling logic
+      run: sleep 60 
 
     - name: Tear down environment
       if: always()
