@@ -9,6 +9,7 @@ from transform import transform
 
 def test_transform_removes_duplicates():
     sample_data = pd.DataFrame({
+        'num': [1, 2],  
         'name': ['Bill Gates', 'Bill Gates'],
         'time': [2020, 2020],
         'annual_income': [100000, 100000],
