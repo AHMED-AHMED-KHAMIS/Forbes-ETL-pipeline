@@ -1,0 +1,56 @@
+name: CI/CD for Forbes Data Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test-build-run:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Set PYTHONPATH so tests can find your DAG modules
+      run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)/dags" >> $GITHUB_ENV
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest
+
+    - name: Run unit tests
+      run: pytest tests/
+
+    - name: Start Docker Compose (Airflow + Postgres)
+      run: docker-compose up -d --build
+
+    - name: Wait for Airflow Webserver to be healthy
+      run: |
+        for i in {1..15}; do
+          echo "Checking Airflow health... attempt $i"
+          if curl -s http://localhost:8080/health | grep -q '"status":"healthy"'; then
+            echo "✅ Airflow is healthy."
+            break
+          fi
+          sleep 10
+        done
+
+    - name: Trigger DAG
+      run: docker exec khamis-webserver airflow dags trigger etl_csv_pipeline
+
+    - name: Wait for DAG to finish (optional: polling or sleep)
+      run: sleep 60  # or add polling logic
+
+    - name: Tear down environment
+      if: always()
+      run: docker-compose down
