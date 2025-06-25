@@ -10,7 +10,7 @@ Designed as a **professional data engineering project**, it processes raw CSV da
 
 The entire workflow is containerized and orchestrated with Airflow and Docker. Here's a high-level architecture:
 
-![Project Architecture](assets/Project_Architecture.png))
+![Project Architecture](assets/Project_Architecture.png)
 
 * **CSV File (Raw Source)** ➔ Local file
 * **Airflow (Docker)** handles task orchestration
